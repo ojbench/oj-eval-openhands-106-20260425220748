@@ -6,31 +6,41 @@ using namespace std;
 
 vector<vector<int>> graph;
 vector<int> subtree_size;
+vector<int> parent;
 int n, k;
 
-// DFS to calculate subtree sizes
-int dfs(int u, int parent) {
+// DFS to calculate subtree sizes and parent pointers
+void dfs(int u, int p) {
+    parent[u] = p;
     subtree_size[u] = 1;
     for (int v : graph[u]) {
-        if (v != parent) {
-            subtree_size[u] += dfs(v, u);
+        if (v != p) {
+            dfs(v, u);
+            subtree_size[u] += subtree_size[v];
         }
     }
-    return subtree_size[u];
 }
 
 // Check if removing node u satisfies the condition
 bool canRemove(int u) {
-    // Check all children subtrees
+    // Check all components formed by removing u
     for (int v : graph[u]) {
-        if (subtree_size[v] > k) {
+        int component_size;
+        // If v is a child of u, the component size is subtree_size[v]
+        // If v is the parent of u, the component size is n - subtree_size[u]
+        if (v == parent[u]) {
+            // v is parent of u
+            component_size = n - subtree_size[u];
+        } else {
+            // v is a child of u (since our DFS tree is rooted at 1)
+            component_size = subtree_size[v];
+        }
+        
+        if (component_size > k) {
             return false;
         }
     }
-    
-    // Check the component containing the parent
-    int parent_component = n - 1 - (subtree_size[u] - 1);
-    return parent_component <= k;
+    return true;
 }
 
 int main() {
@@ -38,6 +48,7 @@ int main() {
     
     graph.resize(n + 1);
     subtree_size.resize(n + 1);
+    parent.resize(n + 1);
     
     // Read edges
     for (int i = 0; i < n - 1; i++) {
@@ -47,7 +58,7 @@ int main() {
         graph[b].push_back(a);
     }
     
-    // Calculate subtree sizes starting from node 1
+    // Calculate subtree sizes and parent pointers starting from node 1
     dfs(1, -1);
     
     vector<int> valid_nodes;
